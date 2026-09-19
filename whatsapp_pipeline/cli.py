@@ -1,10 +1,11 @@
 import argparse
+import time
 from typing import Callable
 
 from celery import group
 
 from tasks.images import extract_metadata, resize_image, watermark_image
-from tasks.messaging import send_whatsapp_message
+from tasks.messaging import check_delivery_status, send_whatsapp_message
 
 
 def fanout(path: str) -> None:
@@ -24,6 +25,19 @@ def flaky(count: int) -> None:
         print(f"[{i}] ->", result.get(timeout=90))
 
 
+def poll(message_id: str) -> None:
+    result = check_delivery_status.delay(message_id)
+    print(result.get(timeout=120))
+
+
+def load(count: int, interval: float) -> None:
+    for i in range(count):
+        message = {"recipient": f"user{i}", "text": f"load message {i}"}
+        send_whatsapp_message.delay(message)
+        print(f"sent [{i}]")
+        time.sleep(interval)
+
+
 def run_fanout(args: argparse.Namespace) -> None:
     fanout(args.path)
 
@@ -32,9 +46,19 @@ def run_flaky(args: argparse.Namespace) -> None:
     flaky(args.count)
 
 
+def run_poll(args: argparse.Namespace) -> None:
+    poll(args.message_id)
+
+
+def run_load(args: argparse.Namespace) -> None:
+    load(args.count, args.interval)
+
+
 COMMANDS: dict[str, Callable[[argparse.Namespace], None]] = {
     "fanout": run_fanout,
     "flaky": run_flaky,
+    "poll": run_poll,
+    "load": run_load,
 }
 
 
@@ -47,6 +71,13 @@ def build_parser() -> argparse.ArgumentParser:
 
     flaky_parser = subparsers.add_parser("flaky", help="Send several messages via the flaky retrying task")
     flaky_parser.add_argument("count", type=int, nargs="?", default=5, help="Number of messages to send (default 5)")
+
+    poll_parser = subparsers.add_parser("poll", help="Poll delivery status via self.retry() until delivered")
+    poll_parser.add_argument("message_id", nargs="?", default="msg-1", help="Message id to poll (default msg-1)")
+
+    load_parser = subparsers.add_parser("load", help="Fire-and-forget messages at a steady interval, without waiting on results")
+    load_parser.add_argument("count", type=int, nargs="?", default=50, help="Number of messages to send (default 50)")
+    load_parser.add_argument("interval", type=float, nargs="?", default=0.5, help="Seconds to sleep between sends (default 0.5)")
 
     return parser
 
