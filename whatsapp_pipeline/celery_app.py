@@ -4,7 +4,7 @@ app = Celery(
     "whatsapp_pipeline",
     broker="amqp://guest:guest@localhost:5672//",
     backend="rpc://",
-    include=["tasks.images", "tasks.messaging"],
+    include=["tasks.images", "tasks.messaging", "tasks.chain"],
 )
 
 

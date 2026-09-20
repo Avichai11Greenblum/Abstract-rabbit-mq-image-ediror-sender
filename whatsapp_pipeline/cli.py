@@ -4,6 +4,7 @@ from typing import Callable
 
 from celery import group
 
+from tasks.chain import send_and_wait
 from tasks.images import extract_metadata, resize_image, watermark_image
 from tasks.messaging import check_delivery_status, send_whatsapp_message
 
@@ -38,6 +39,12 @@ def load(count: int, interval: float) -> None:
         time.sleep(interval)
 
 
+def chain(count: int) -> None:
+    messages = [{"recipient": f"user{i}", "text": f"chain message {i}"} for i in range(count)]
+    send_and_wait.delay(messages)
+    print(f"started chain of {count} messages; watch the worker log")
+
+
 def run_fanout(args: argparse.Namespace) -> None:
     fanout(args.path)
 
@@ -54,11 +61,16 @@ def run_load(args: argparse.Namespace) -> None:
     load(args.count, args.interval)
 
 
+def run_chain(args: argparse.Namespace) -> None:
+    chain(args.count)
+
+
 COMMANDS: dict[str, Callable[[argparse.Namespace], None]] = {
     "fanout": run_fanout,
     "flaky": run_flaky,
     "poll": run_poll,
     "load": run_load,
+    "chain": run_chain,
 }
 
 
@@ -78,6 +90,9 @@ def build_parser() -> argparse.ArgumentParser:
     load_parser = subparsers.add_parser("load", help="Fire-and-forget messages at a steady interval, without waiting on results")
     load_parser.add_argument("count", type=int, nargs="?", default=50, help="Number of messages to send (default 50)")
     load_parser.add_argument("interval", type=float, nargs="?", default=0.5, help="Seconds to sleep between sends (default 0.5)")
+
+    chain_parser = subparsers.add_parser("chain", help="Send messages strictly one at a time, each after the previous is delivered")
+    chain_parser.add_argument("count", type=int, nargs="?", default=3, help="Number of messages in the chain (default 3)")
 
     return parser
 
