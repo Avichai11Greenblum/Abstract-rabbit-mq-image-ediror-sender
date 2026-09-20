@@ -1,6 +1,6 @@
 # rabbitmq_practice
 
-A small learning project for practicing **Celery + RabbitMQ** (managed with **uv**).
+A small learning project for practicing **Celery + RabbitMQ (as docker container server)** (managed with **uv**).
 
 > **Disclaimer:** this is an abstract architecture exercise, not a real WhatsApp sender. The "WhatsApp API" and the delivery status are random stubs, and the image tasks only sleep. Some patterns (sequential sending, self-retry as polling) are deliberately naive, chosen to practice specific Celery primitives rather than as production design.
 
