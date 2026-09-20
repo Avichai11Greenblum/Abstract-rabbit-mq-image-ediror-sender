@@ -1,7 +1,7 @@
 [project]
 name = "rabbitmq-practice"
 version = "0.1.0"
-description = "Add your description here"
+description = "Learning project: Celery + RabbitMQ patterns (fan-out, retry, polling, sequential chain) with a simulated WhatsApp pipeline"
 readme = "README.md"
 requires-python = ">=3.14"
 dependencies = [
